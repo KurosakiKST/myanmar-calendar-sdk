@@ -6,6 +6,5 @@ import java.util.Date
 
 interface CalendarRepository {
     fun convertToMyanmarDate(date: Date): MyanmarDate
-    fun convertToGregorianDate(myanmarDate: MyanmarDate): Date
     fun getMonthCalendar(timeMillis: Long): CalendarResult
 }
