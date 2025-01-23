@@ -53,3 +53,16 @@ dependencies {
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)
 }
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+                groupId = "com.github.KurosakiKST"
+                artifactId = "myanmar-calendar-sdk"
+                version = "v1.0.0-alpha"
+            }
+        }
+    }
+}
