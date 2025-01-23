@@ -6,7 +6,7 @@ An Android library for converting between Gregorian and Myanmar calendar dates.
 
 ```gradle
 dependencies {
-    implementation 'com.ryan:myanmar-calendar:1.0.0'
+    implementation 'com.github.KurosakiKST:myanmar-calendar-sdk:v0.0.1-alpha'
 }
 ```
 
