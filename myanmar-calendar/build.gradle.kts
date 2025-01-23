@@ -40,4 +40,16 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Add Coroutines support
+    implementation(libs.coroutines.android)
+
+    // Testing
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+
+    // mockito
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
 }
