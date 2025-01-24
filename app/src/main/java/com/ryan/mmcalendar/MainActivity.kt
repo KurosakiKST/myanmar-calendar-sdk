@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,16 +23,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ryan.myanmarcalendar.data.repository.CalendarRepositoryImpl
+import androidx.compose.ui.unit.sp
+import com.ryan.myanmarcalendar.api.MyanmarCalendar
+import com.ryan.myanmarcalendar.data.model.Astro
 import com.ryan.myanmarcalendar.domain.model.DayInfo
-import com.ryan.myanmarcalendar.domain.usecase.GetCurrentMonthCalendarUseCase
+import java.util.Date
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val repository = CalendarRepositoryImpl()
-        val useCase = GetCurrentMonthCalendarUseCase(repository)
+        val calendar = MyanmarCalendar.getInstance()
 
         setContent {
             MaterialTheme {
@@ -38,7 +40,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CalendarScreen(useCase)
+                    CalendarScreen(calendar)
                 }
             }
         }
@@ -46,19 +48,32 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CalendarScreen(useCase: GetCurrentMonthCalendarUseCase) {
-    val result = useCase(System.currentTimeMillis())
+fun CalendarScreen(calendar: MyanmarCalendar) {
+    val result = calendar.getCurrentMonthCalendar()
+    val currentDate = calendar.convertToMyanmarDate(Date())
+    val astro = Astro.of(currentDate)
 
     Column(modifier = Modifier.padding(16.dp)) {
-        // Header
-        Text(
-            text = "${result.gregorianMonth.month}/${result.gregorianMonth.year}",
-            style = MaterialTheme.typography.titleLarge
-        )
-        Text(
-            text = "${result.myanmarMonth.monthName} ${result.myanmarMonth.year}",
-            style = MaterialTheme.typography.titleMedium
-        )
+        // Western Calendar Info
+        Text("Western Date: ${result.gregorianMonth.month}/${result.gregorianMonth.year}")
+
+        // Myanmar Calendar Info
+        Text("Myanmar Year: ${result.myanmarMonth.year}")
+        Text("Myanmar Month: ${result.myanmarMonth.monthName}")
+        Text("Is Leap Month: ${result.myanmarMonth.isLeapMonth}")
+
+        // Astro Info
+        Text("Yatyaza: ${astro.getYatyaza()}")
+        Text("Pyathada: ${astro.getPyathada()}")
+        Text("Nagahle Direction: ${astro.getNagahle()}")
+        Text("Mahabote: ${astro.getMahabote()}")
+        Text("Nakhat: ${astro.getNakhat()}")
+        Text("Year Name: ${astro.getYearName()}")
+
+        if (astro.isSabbath()) Text("Sabbath Day")
+        if (astro.isThamanyo()) Text("Thamanyo")
+        if (astro.isAmyeittasote()) Text("Amyeittasote")
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Calendar Grid
@@ -67,16 +82,13 @@ fun CalendarScreen(useCase: GetCurrentMonthCalendarUseCase) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Weekday headers
             items(listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")) { day ->
                 Text(
                     text = day,
-                    modifier = Modifier.padding(4.dp),
-                    style = MaterialTheme.typography.labelMedium
+                    modifier = Modifier.padding(4.dp)
                 )
             }
 
-            // Calendar days
             items(result.days) { dayInfo ->
                 DayCell(dayInfo)
             }
@@ -92,14 +104,8 @@ fun DayCell(dayInfo: DayInfo) {
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = dayInfo.gregorianDay.toString(),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = dayInfo.myanmarDay.toString(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
-        )
+        Text(dayInfo.gregorianDay.toString())
+        Text(dayInfo.myanmarDay.toString())
+        Text(dayInfo.myanmarMonth, fontSize = 10.sp)
     }
 }

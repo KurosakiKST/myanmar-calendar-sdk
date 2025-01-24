@@ -29,6 +29,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf("-Xexport-kdoc", "-Xhide-internal")
     }
 }
 
