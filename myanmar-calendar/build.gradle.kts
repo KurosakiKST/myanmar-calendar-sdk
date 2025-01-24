@@ -62,7 +62,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.KurosakiKST"
                 artifactId = "myanmar-calendar-sdk"
-                version = "v0.0.2-alpha"
+                version = "v0.0.2-beta"
             }
         }
     }
