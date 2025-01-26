@@ -10,10 +10,12 @@ data class DayInfo(
     val gregorianDay: Int,
     val myanmarDay: Int,
     val myanmarMonth: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val moonPhase: Int = 0
 )
 
 data class GregorianMonth(
+    val day: Int,
     val year: Int,
     val month: Int,
     val daysInMonth: Int,

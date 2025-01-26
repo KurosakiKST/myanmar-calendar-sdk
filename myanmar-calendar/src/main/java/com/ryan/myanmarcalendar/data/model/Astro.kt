@@ -22,7 +22,8 @@ data class Astro(
     val nagahle: Int = 0,  // 0=west, 1=north, 2=east, 3=south
     val mahabote: Int = 0, // 0=Binga, 1=Atun, 2=Yaza, 3=Adipati, 4=Marana, 5=Thike, 6=Puti
     val nakhat: Int = 0,   // 0=orc, 1=elf, 2=human
-    val yearName: Int = 0
+    val yearName: Int = 0,
+    val moonPhase: Int = 0 // 0=waxing, 1=full moon, 2=waning, 3=dark moon
 ) : Serializable {
 
     fun isYatyaza() = yatyaza > 0
@@ -39,6 +40,16 @@ data class Astro(
     fun isYatyotema() = yatyotema > 0
     fun isMahayatkyan() = mahayatkyan > 0
     fun isShanyat() = shanyat > 0
+    fun isFullMoon() = moonPhase == 1
+    fun isDarkMoon() = moonPhase == 3
+
+    fun getSabbathText(language: Language = CalendarConfig.getInstance().language): String {
+        return when (sabbath) {
+            1 -> LanguageTranslator.translate("Sabbath", language)
+            2 -> LanguageTranslator.translate("Sabbath Eve", language)
+            else -> ""
+        }
+    }
 
     fun getYatyaza(language: Language = CalendarConfig.getInstance().language): String {
         return if (isYatyaza()) LanguageTranslator.translate("Yatyaza", language) else ""
@@ -47,7 +58,12 @@ data class Astro(
     fun getPyathada(language: Language = CalendarConfig.getInstance().language): String {
         return when (pyathada) {
             1 -> LanguageTranslator.translate("Pyathada", language)
-            2 -> "${LanguageTranslator.translate("Afternoon", language)} ${LanguageTranslator.translate("Pyathada", language)}"
+            2 -> "${LanguageTranslator.translate("Afternoon", language)} ${
+                LanguageTranslator.translate(
+                    "Pyathada",
+                    language
+                )
+            }"
             else -> ""
         }
     }
@@ -75,6 +91,11 @@ data class Astro(
         return LanguageTranslator.translate(yearNames[yearName], language)
     }
 
+    fun getMoonPhase(language: Language = CalendarConfig.getInstance().language): String {
+        val phases = arrayOf("Waxing", "Full Moon", "Waning", "Dark Moon")
+        return LanguageTranslator.translate(phases[moonPhase], language)
+    }
+
     companion object {
         fun of(myanmarDate: MyanmarDate): Astro {
             with(myanmarDate) {
@@ -95,7 +116,8 @@ data class Astro(
                     nagahle = AstroKernel.calculateNagahle(month),
                     mahabote = AstroKernel.calculateMahabote(year, weekDay),
                     nakhat = AstroKernel.calculateNakhat(year),
-                    yearName = AstroKernel.calculateYearName(year)
+                    yearName = AstroKernel.calculateYearName(year),
+                    moonPhase = moonPhase
                 )
             }
         }
