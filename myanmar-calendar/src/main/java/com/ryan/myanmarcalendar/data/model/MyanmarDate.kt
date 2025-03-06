@@ -39,9 +39,14 @@ data class MyanmarDate(
         return LanguageTranslator.translate(year.toDouble(), language)
     }
 
+    /**
+     * Get the name of the Myanmar month considering special cases like
+     * month 0 (First Waso) and intercalary months
+     */
     fun getMonthName(language: Language = CalendarConfig.getInstance().language): String {
         val sb = StringBuilder()
 
+        // Special case for Second Waso (month 4 with watat)
         if (month == 4 && yearType > 0) {
             sb.append(LanguageTranslator.translate("Second", language))
             sb.append(" ")

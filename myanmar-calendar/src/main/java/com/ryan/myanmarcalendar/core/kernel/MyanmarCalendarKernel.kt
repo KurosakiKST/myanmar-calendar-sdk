@@ -9,10 +9,17 @@ import kotlin.math.floor
 import kotlin.math.roundToLong
 
 internal object MyanmarCalendarKernel {
+    /**
+     * Calculate fortnight day from month day (1-30)
+     * Returns a value from 1 to 15
+     */
     fun calculateFortnightDay(md: Int): Int {
         return md - 15 * (md / 16)
     }
 
+    /**
+     * Calculate length of month based on month number and year type
+     */
     fun calculateLengthOfMonth(mm: Int, myt: Int): Int {
         var mml = 30 - mm % 2
         if (mm == 3) {
@@ -21,16 +28,35 @@ internal object MyanmarCalendarKernel {
         return mml
     }
 
+    /**
+     * Calculate moon phase from day of the month, month, and year type
+     * Returns:
+     * 0 = waxing, 1 = full moon, 2 = waning, 3 = new moon
+     */
     fun calculateMoonPhase(myt: Int, mm: Int, md: Int): Int {
         val mml = calculateLengthOfMonth(mm, myt)
-        val d = md / mml
-        return (floor((md + 1) / 16.0) + floor(md / 16.0) + d).toInt()
+
+        if (md == 15) return 1  // Full moon
+        if (md == mml) return 3  // New moon
+
+        if (md < 15) return 0    // Waxing
+        return 2                 // Waning
     }
 
+    /**
+     * Calculate the length of a Myanmar year based on year type
+     * Returns:
+     * 354 days for common year
+     * 384 days for little watat
+     * 385 days for big watat
+     */
     fun calculateMyanmarYearLength(myt: Int): Int {
         return 354 + (1 - floor(1.0 / (myt + 1)).toInt()) * 30 + floor(myt / 2.0).toInt()
     }
 
+    /**
+     * Calculate related Myanmar months for a specific year and month
+     */
     fun calculateRelatedMyanmarMonths(myear: Int, mmonth: Int): MyanmarMonths {
         val j1 = (CalendarConstants.SY * myear + CalendarConstants.MO).roundToLong() + 1L
         val j2 = (CalendarConstants.SY * (myear + 1) + CalendarConstants.MO).roundToLong()
@@ -57,6 +83,9 @@ internal object MyanmarCalendarKernel {
         return populateMonthLists(m1.yearType, si, ei, targetMonth)
     }
 
+    /**
+     * Populate month lists for display
+     */
     private fun populateMonthLists(yearType: Int, si: Int, ei: Int, mmonth: Int): MyanmarMonths {
         val monthList = mutableListOf<Int>()
         val monthNameList = mutableListOf<String>()
@@ -85,23 +114,36 @@ internal object MyanmarCalendarKernel {
         return MyanmarMonths(monthList, monthNameList, monthList[currentIndex])
     }
 
+    /**
+     * Calculate year type for a Myanmar year
+     */
     fun calculateYearType(myear: Int): Int {
         return MyanmarDateKernel.checkMyanmarYear(myear)["myt"] ?: 0
     }
 
+    /**
+     * Calculate day of month from fortnight day, moon phase, and month
+     */
     fun calculateDayOfMonth(myear: Int, mmonth: Int, moonPhase: Int, fortnightDay: Int): Int {
         val yo = MyanmarDateKernel.checkMyanmarYear(myear)
         val yearType = yo["myt"] ?: 0
 
         // Adjust month length
-        val monthLength = 30 - mmonth % 2 + (if (mmonth == 3) yearType / 2 else 0)
+        val monthLength = calculateLengthOfMonth(mmonth, yearType)
 
-        val m1 = moonPhase % 2
-        val m2 = moonPhase / 2
-
-        return m1 * (15 + m2 * (monthLength - 15)) + (1 - m1) * (fortnightDay + 15 * m2)
+        // Handle different moon phases
+        return when (moonPhase) {
+            0 -> fortnightDay                  // Waxing
+            1 -> 15                           // Full moon
+            2 -> 15 + fortnightDay            // Waning
+            3 -> monthLength                  // New moon
+            else -> throw IllegalArgumentException("Invalid moon phase: $moonPhase")
+        }
     }
 
+    /**
+     * Generate a formatted calendar header for the given date range
+     */
     fun getCalendarHeader(
         startDate: MyanmarDate,
         endDate: MyanmarDate,
@@ -122,6 +164,9 @@ internal object MyanmarCalendarKernel {
         return str.toString()
     }
 
+    /**
+     * Format Buddhist Era header
+     */
     fun getHeaderForBuddhistEra(startDate: MyanmarDate, endDate: MyanmarDate, language: Language): String {
         val sb = StringBuilder()
 
@@ -140,6 +185,9 @@ internal object MyanmarCalendarKernel {
         return sb.toString()
     }
 
+    /**
+     * Format Myanmar Year header
+     */
     fun getHeaderForMyanmarYear(startDate: MyanmarDate, endDate: MyanmarDate, language: Language): String {
         val sb = StringBuilder()
 
@@ -163,6 +211,9 @@ internal object MyanmarCalendarKernel {
         return sb.toString()
     }
 
+    /**
+     * Format Myanmar Month header
+     */
     fun getHeaderForMyanmarMonth(startDate: MyanmarDate, endDate: MyanmarDate, language: Language): String {
         val sb = StringBuilder()
 
@@ -180,10 +231,16 @@ internal object MyanmarCalendarKernel {
         return sb.toString()
     }
 
+    /**
+     * Get calendar header for Myanmar year and month
+     */
     fun getCalendarHeader(myear: Int, mmonth: Int, language: Language): String {
         return getCalendarHeader(myear, mmonth, 1, language)
     }
 
+    /**
+     * Get calendar header for Myanmar year, month and day
+     */
     fun getCalendarHeader(myear: Int, mmonth: Int, mday: Int, language: Language): String {
         val julianDate = MyanmarDateKernel.myanmarDateToJulian(myear, mmonth, mday)
         val myanmarDate = MyanmarDate.of(julianDate)
@@ -197,6 +254,9 @@ internal object MyanmarCalendarKernel {
         return getCalendarHeader(myanmarDate, endMyanmarDate, language)
     }
 
+    /**
+     * Get calendar header for Western date
+     */
     fun getCalendarHeaderForWesternStyle(year: Int, month: Int, language: Language): String {
         val monthLength = WesternDateKernel.getLengthOfMonth(year, month, 0)
         val startDate = MyanmarDate.of(year, month, 1)

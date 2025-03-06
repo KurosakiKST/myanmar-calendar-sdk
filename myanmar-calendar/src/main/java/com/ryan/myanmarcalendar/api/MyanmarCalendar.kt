@@ -170,9 +170,11 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
      */
     private fun getDaysInMonth(year: Int, month: Int): List<DayInfo> {
         val firstDayJulian = WesternDateKernel.westernToJulian(year, month, 1, config.calendarType.number)
-        val firstDayOfWeek = (firstDayJulian.toLong() + 1) % 7
+        val firstDayOfWeek = ((firstDayJulian.toLong() + 2) % 7).toInt()  // +2 to adjust 0=sat, 1=sun...
+        val daysInMonth = WesternDateKernel.getLengthOfMonth(year, month, config.calendarType.number)
 
-        val paddingDays = (0 until firstDayOfWeek.toInt()).map {
+        // Calculate padding days for the calendar grid (to align first day of month with correct weekday)
+        val paddingDays = (0 until firstDayOfWeek).map {
             DayInfo(
                 gregorianDay = 0,
                 myanmarDay = 0,
@@ -182,7 +184,8 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
             )
         }
 
-        val monthDays = (1..WesternDateKernel.getLengthOfMonth(year, month, config.calendarType.number)).map { day ->
+        // Get all month days with their Myanmar date information
+        val monthDays = (1..daysInMonth).map { day ->
             val julianDay = WesternDateKernel.westernToJulian(year, month, day, config.calendarType.number)
             val myanmarDate = MyanmarDateKernel.julianToMyanmarDate(julianDay)
             val astro = Astro.of(myanmarDate)

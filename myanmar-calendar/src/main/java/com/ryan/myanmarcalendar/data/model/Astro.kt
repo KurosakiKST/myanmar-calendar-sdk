@@ -155,6 +155,45 @@ data class Astro(
         return LanguageTranslator.translate(yearNames[yearName], language)
     }
 
+    /**
+     * Determine if there's any astrological significance for the day
+     */
+    fun hasAstrologicalSignificance(): Boolean {
+        return isYatyaza() || isPyathada() || isSabbath() || isSabbathEve() ||
+                isThamanyo() || isAmyeittasote() || isWarameittugyi() ||
+                isWarameittunge() || isYatpote() || isThamaphyu() ||
+                isNagapor() || isYatyotema() || isMahayatkyan() || isShanyat()
+    }
+
+    /**
+     * Get a short summary of astrological significance for the day
+     * (primarily for UI display)
+     */
+    fun getAstrologicalSummary(language: Language = CalendarConfig.getInstance().language): String {
+        if (!hasAstrologicalSignificance()) {
+            return ""
+        }
+
+        // Return the most significant attributes first
+        if (isYatyaza()) {
+            return getYatyaza(language)
+        } else if (isPyathada()) {
+            return getPyathada(language)
+        } else if (isSabbath()) {
+            return getSabbath(language)
+        } else if (isSabbathEve()) {
+            return getSabbathEve(language)
+        } else if (isThamanyo()) {
+            return getThamanyo(language)
+        } else if (isThamaphyu()) {
+            return getThamaphyu(language)
+        } else if (isAmyeittasote()) {
+            return getAmyeittasote(language)
+        }
+        // Return any other attributes
+        return toString(language)
+    }
+
     override fun toString(): String {
         return toString(CalendarConfig.getInstance().language)
     }
@@ -229,30 +268,30 @@ data class Astro(
         }
 
         sb.append(" ")
-        sb.append(language.punctuationMark)
-        sb.append(LanguageTranslator.translate("Naga", language))
-        sb.append(" ")
-        sb.append(LanguageTranslator.translate("Head", language))
-        sb.append(" ")
-        sb.append(getNagahle(language))
-        sb.append(" ")
-        sb.append(LanguageTranslator.translate("Facing", language))
+            .append(language.punctuationMark)
+            .append(LanguageTranslator.translate("Naga", language))
+            .append(" ")
+            .append(LanguageTranslator.translate("Head", language))
+            .append(" ")
+            .append(getNagahle(language))
+            .append(" ")
+            .append(LanguageTranslator.translate("Facing", language))
 
         sb.append(" ")
-        sb.append(language.punctuationMark)
+            .append(language.punctuationMark)
 
         sb.append(getMahabote(language))
-        sb.append(LanguageTranslator.translate("Born", language))
+            .append(LanguageTranslator.translate("Born", language))
 
         sb.append(" ")
-        sb.append(language.punctuationMark)
+            .append(language.punctuationMark)
 
         sb.append(getNakhat(language))
-        sb.append(" ")
-        sb.append(LanguageTranslator.translate("Nakhat", language))
+            .append(" ")
+            .append(LanguageTranslator.translate("Nakhat", language))
 
         sb.append(" ")
-        sb.append(language.punctuationMark)
+            .append(language.punctuationMark)
 
         sb.append(getYearName(language))
 

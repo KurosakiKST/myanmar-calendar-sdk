@@ -8,6 +8,9 @@ import kotlin.math.floor
 import kotlin.math.roundToLong
 
 internal object MyanmarDateKernel {
+    /**
+     * Convert Julian Day Number to Myanmar Date
+     */
     fun julianToMyanmarDate(jd: Double): MyanmarDate {
         val jdn = jd.roundToLong()
         val myear = floor((jdn - 0.5 - CalendarConstants.MO) / CalendarConstants.SY).toInt()
@@ -17,9 +20,12 @@ internal object MyanmarDateKernel {
         // Day count
         var dd = jdn - yo["tg1"]!! + 1
 
+        // Calculate year length based on year type
+        val yearLength = MyanmarCalendarKernel.calculateMyanmarYearLength(yearType)
+
         // Month type: Hnaung =1 or Oo = 0 | late =1 or early = 0
-        val monthType = ((dd - 1) / MyanmarCalendarKernel.calculateMyanmarYearLength(yearType)).toInt()
-        dd -= monthType * MyanmarCalendarKernel.calculateMyanmarYearLength(yearType)
+        val monthType = ((dd - 1) / yearLength).toInt()
+        dd -= monthType * yearLength
 
         // Calculate big watat and common year values
         val b = yearType / 2
@@ -40,29 +46,32 @@ internal object MyanmarDateKernel {
         // Adjust month numbers for late months
         month += f * 3 - e * 4 + 12 * monthType
 
-        // Month length
+        // Calculate month length
         val monthLength = 30 - month % 2 + (if (month == 3) yearType / 2 else 0)
 
-        // Moon phase
-        val moonPhase = ((monthDay + 1) / 16 + monthDay / 16 + monthDay / monthLength).toInt()
+        // Calculate moon phase [0=waxing, 1=full moon, 2=waning, 3=new moon]
+        val moonPhase = MyanmarCalendarKernel.calculateMoonPhase(yearType, month, monthDay)
 
-        // Fortnight day
-        val fortnightDay = monthDay - 15 * (monthDay / 16)
+        // Calculate fortnight day [1-15]
+        val fortnightDay = MyanmarCalendarKernel.calculateFortnightDay(monthDay)
 
-        // Week day
+        // Calculate week day [0=sat, 1=sun, ..., 6=fri]
         val weekDay = ((jdn + 2) % 7).toInt()
+
+        // Determine month type enum
+        val monthTypeEnum = when {
+            month == 0 -> MonthType.SECOND_WASO
+            month == 4 && yearType > 0 -> MonthType.INTERCALARY
+            else -> MonthType.REGULAR
+        }
 
         return MyanmarDate(
             year = myear,
             month = month,
             day = monthDay,
-            monthType = when {
-                month == 4 && yearType > 0 -> MonthType.INTERCALARY
-                month == 0 -> MonthType.SECOND_WASO
-                else -> MonthType.REGULAR
-            },
+            monthType = monthTypeEnum,
             yearType = yearType,
-            yearLength = MyanmarCalendarKernel.calculateMyanmarYearLength(yearType),
+            yearLength = yearLength,
             monthLength = monthLength,
             moonPhase = moonPhase,
             fortnightDay = fortnightDay,
@@ -71,13 +80,23 @@ internal object MyanmarDateKernel {
         )
     }
 
+    /**
+     * Convert Myanmar date to Julian Day Number
+     */
     fun myanmarDateToJulian(myear: Int, mmonth: Int, mday: Int): Double {
         val yo = checkMyanmarYear(myear)
-        val mmt = mmonth / 13
-        val month = mmonth % 13 + mmt
+        val yearType = yo["myt"] ?: 0
 
-        val b = yo["myt"]!! / 2
-        val c = 1 - floor((yo["myt"]!! + 1.0) / 2.0).toInt()
+        val mmt = mmonth / 13
+        var month = mmonth % 13 + mmt
+
+        // Handle special case for first Waso (month 0)
+        if (month <= 0 && mmonth != 0) {
+            month = 4  // Default to regular Waso if calculation gives negative or zero
+        }
+
+        val b = yearType / 2
+        val c = 1 - floor((yearType + 1.0) / 2.0).toInt()
 
         val adjustedMonth = month + 4 - floor((month + 15) / 16.0).toInt() * 4 +
                 floor((month + 12) / 16.0).toInt()
@@ -94,6 +113,9 @@ internal object MyanmarDateKernel {
         return (adjustedDD + yo["tg1"]!! - 1).toDouble()
     }
 
+    /**
+     * Check Myanmar Year and return info about the year
+     */
     fun checkMyanmarYear(myear: Int): Map<String, Int> {
         val y2 = checkWatat(myear)
         var myt = y2["watat"] ?: 0
@@ -130,22 +152,43 @@ internal object MyanmarDateKernel {
         )
     }
 
+    /**
+     * Check if the year is a watat year (intercalary month year)
+     */
     fun checkWatat(myear: Int): Map<String, Int> {
         // Get constants for the corresponding calendar era
         val eraId: Double
-        val watatOffset: Double
+        var watatOffset: Double
         val numberOfMonths: Double
+        var exceptionInWatatYear = 0.0
 
         if (myear >= CalendarConstants.SE3) {
             // The third era (after Independence 1312 ME)
             eraId = 3.0
             watatOffset = -0.5
             numberOfMonths = 8.0
+
+            // Special watat exceptions for specific years
+            if (myear == 1344 || myear == 1345) {
+                exceptionInWatatYear = 1.0
+            }
         } else {
             // The second era (under British colony: 1217 ME - 1311 ME)
             eraId = 2.0
             watatOffset = -1.0
             numberOfMonths = 4.0
+
+            // Special watat exceptions for specific years
+            if (myear == 1263 || myear == 1264) {
+                exceptionInWatatYear = 1.0
+            }
+        }
+
+        // Calculate full moon offset adjustments for specific years
+        if (myear == 1234) {
+            watatOffset += 1
+        } else if (myear == 1261) {
+            watatOffset -= 1
         }
 
         // Threshold to adjust
@@ -164,7 +207,7 @@ internal object MyanmarDateKernel {
                 4.5 * CalendarConstants.LM + watatOffset).roundToLong()
 
         // Find watat
-        val watat = if (eraId >= 2) {
+        var watat = if (eraId >= 2) {
             // If 2nd era or later, find watat based on excess days
             val tw = CalendarConstants.LM - (CalendarConstants.SY / 12 - CalendarConstants.LM) * numberOfMonths
             if (ed >= tw) 1 else 0
@@ -175,12 +218,18 @@ internal object MyanmarDateKernel {
             floor(adjustedW / 12.0).toInt()
         }
 
+        // Apply watat exception
+        watat = watat xor exceptionInWatatYear.toInt()
+
         return mapOf(
             "fm" to fm.toInt(),
             "watat" to watat
         )
     }
 
+    /**
+     * Convert Myanmar month name to month number
+     */
     fun searchMyanmarMonthNumber(monthName: String): Int {
         return when (monthName.lowercase()) {
             "first waso" -> 0
@@ -202,6 +251,9 @@ internal object MyanmarDateKernel {
         }
     }
 
+    /**
+     * Convert moon phase name to moon phase number
+     */
     fun searchMoonPhase(phaseName: String): Int {
         return when (phaseName.lowercase()) {
             "waxing" -> 0
@@ -212,6 +264,9 @@ internal object MyanmarDateKernel {
         }
     }
 
+    /**
+     * Get Julian Day Number from Myanmar year, month name and day
+     */
     fun getJulianDayNumber(myear: Int, monthName: String, day: Int): Double {
         val month = searchMyanmarMonthNumber(monthName)
         return myanmarDateToJulian(myear, month, day)
