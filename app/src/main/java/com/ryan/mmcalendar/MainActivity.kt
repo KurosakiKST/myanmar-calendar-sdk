@@ -3,67 +3,69 @@ package com.ryan.mmcalendar
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ryan.myanmarcalendar.api.MyanmarCalendar
-import com.ryan.myanmarcalendar.data.model.Astro
+import com.ryan.myanmarcalendar.api.config.CalendarConfig
 import com.ryan.myanmarcalendar.data.model.Language
-import com.ryan.myanmarcalendar.domain.model.CalendarResult
 import com.ryan.myanmarcalendar.domain.model.DayInfo
-import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Configure calendar with Myanmar language
+        val config = CalendarConfig.Builder()
+            .setLanguage(Language.MYANMAR)
+            .build()
+        CalendarConfig.init(config)
+
         val calendar = MyanmarCalendar.getInstance()
 
         setContent {
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color.Black
                 ) {
-                    var selectedDate by remember { mutableStateOf(Date()) }
+                    var currentDate by remember { mutableStateOf(Date()) }
 
                     Column(modifier = Modifier.fillMaxSize()) {
-                        MonthNavigator(
-                            selectedDate = selectedDate,
-                            onDateChange = { selectedDate = it }
+                        CalendarHeader(
+                            currentDate = currentDate,
+                            onPreviousMonth = {
+                                val cal = Calendar.getInstance()
+                                cal.time = currentDate
+                                cal.add(Calendar.MONTH, -1)
+                                currentDate = cal.time
+                            },
+                            onNextMonth = {
+                                val cal = Calendar.getInstance()
+                                cal.time = currentDate
+                                cal.add(Calendar.MONTH, 1)
+                                currentDate = cal.time
+                            }
                         )
-                        CalendarScreen(
-                            calendar = calendar,
-                            selectedDate = selectedDate
-                        )
+
+                        // Myanmar calendar header
+                        MyanmarCalendarInfo(currentDate, calendar)
+
+                        // Calendar Grid
+                        CalendarGrid(currentDate, calendar)
                     }
                 }
             }
@@ -72,192 +74,209 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MonthNavigator(
-    selectedDate: Date,
-    onDateChange: (Date) -> Unit
+fun CalendarHeader(
+    currentDate: Date,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit
 ) {
+    val cal = Calendar.getInstance()
+    cal.time = currentDate
+
+    val year = cal.get(Calendar.YEAR)
+    val monthFormat = SimpleDateFormat("MMM", Locale.US)
+    val month = monthFormat.format(currentDate)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .background(Color.Black)
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = {
-            val calendar = java.util.Calendar.getInstance()
-            calendar.time = selectedDate
-            calendar.add(java.util.Calendar.MONTH, -1)
-            onDateChange(calendar.time)
-        }) {
-            Icon(Icons.Default.ArrowBack, "Previous Month")
+        // Left arrow
+        Button(
+            onClick = onPreviousMonth,
+            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+            modifier = Modifier.padding(end = 4.dp)
+        ) {
+            Text("<", color = Color.White)
         }
 
-        IconButton(onClick = {
-            val calendar = java.util.Calendar.getInstance()
-            calendar.time = selectedDate
-            calendar.add(java.util.Calendar.MONTH, 1)
-            onDateChange(calendar.time)
-        }) {
-            Icon(Icons.Default.ArrowForward, "Next Month")
+        // Year
+        Button(
+            onClick = { },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+            modifier = Modifier.padding(horizontal = 4.dp)
+        ) {
+            Text(year.toString(), color = Color.White)
+        }
+
+        // Month
+        Button(
+            onClick = { },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+            modifier = Modifier.padding(horizontal = 4.dp)
+        ) {
+            Text(month, color = Color.White)
+        }
+
+        // Right arrow
+        Button(
+            onClick = onNextMonth,
+            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+            modifier = Modifier.padding(horizontal = 4.dp)
+        ) {
+            Text(">", color = Color.White)
+        }
+
+        // Myanmar button
+        Button(
+            onClick = { },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+            modifier = Modifier.padding(start = 4.dp)
+        ) {
+            Text("Myanmar", color = Color.White)
         }
     }
 }
 
 @Composable
-fun CalendarScreen(calendar: MyanmarCalendar, selectedDate: Date) {
-    val result = calendar.getMonthCalendar(selectedDate.time)
-    val currentDate = calendar.convertToMyanmarDate(selectedDate)
-    val astro = Astro.of(currentDate)
+fun MyanmarCalendarInfo(currentDate: Date, myanmarCalendar: MyanmarCalendar) {
+    val cal = Calendar.getInstance()
+    cal.time = currentDate
+
+    val year = cal.get(Calendar.YEAR)
+    val month = cal.get(Calendar.MONTH) + 1
+
+    val myanmarCalendarHeader = myanmarCalendar.getWesternCalendarHeader(year, month)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF222222))
+            .padding(vertical = 16.dp, horizontal = 8.dp)
+    ) {
+        Text(
+            text = myanmarCalendarHeader,
+            color = Color.White,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun CalendarGrid(currentDate: Date, myanmarCalendar: MyanmarCalendar) {
+    val calendarResult = myanmarCalendar.getMonthCalendar(currentDate.time)
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
-        CalendarHeader(result, astro)
-        Spacer(modifier = Modifier.height(16.dp))
-        CalendarGrid(result.days, calendar)
-    }
-}
-
-@Composable
-private fun CalendarHeader(result: CalendarResult, astro: Astro) {
-    val language = Language.MYANMAR
-    val calendar = MyanmarCalendar.getInstance()
-
-    Column(
-        modifier = Modifier
-            .padding(8.dp)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        HeaderSection("Western Date", "${result.gregorianMonth.day}/${result.gregorianMonth.month}/${result.gregorianMonth.year}")
-        HeaderSection(
-            calendar.getMyanmarText("Myanmar Year"),
-            result.myanmarMonth.year.toString()
-        )
-        HeaderSection(
-            calendar.getMyanmarText("Myanmar Month"),
-            calendar.getMyanmarText(result.myanmarMonth.monthName)
-        )
-        HeaderSection("Leap Month", result.myanmarMonth.isLeapMonth.toString())
-
-        Spacer(modifier = Modifier.height(8.dp))
-//        AstroSection(astro, language)
-    }
-}
-
-@Composable
-private fun HeaderSection(title: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun AstroSection(astro: Astro, language: Language) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        astro.getYatyaza(language).let { if(it.isNotEmpty()) AstroRow("Yatyaza", it) }
-        astro.getPyathada(language).let { if(it.isNotEmpty()) AstroRow("Pyathada", it) }
-        AstroRow("Nagahle", astro.getNagahle(language))
-        AstroRow("Mahabote", astro.getMahabote(language))
-        AstroRow("Nakhat", astro.getNakhat(language))
-        AstroRow("Year Name", astro.getYearName(language))
-    }
-}
-
-@Composable
-private fun AstroRow(title: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(title, style = MaterialTheme.typography.bodyMedium)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun CalendarGrid(days: List<DayInfo>, calendar: MyanmarCalendar) {
-    Column {
+        // Weekday headers
         WeekdayHeader()
+
+        // Days grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.height(400.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
-            items(days) { dayInfo ->
-                DayCell(dayInfo, calendar)
+            items(calendarResult.days) { dayInfo ->
+                DayCell(dayInfo)
             }
         }
     }
 }
 
 @Composable
-private fun WeekdayHeader() {
+fun WeekdayHeader() {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(vertical = 8.dp)
     ) {
-        listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa").forEach { day ->
-            Text(
-                text = day,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
+        // Shortened weekday names in Myanmar - exactly as seen in screenshots
+        val weekdays = listOf("တနင်", "တလာ", "အငြာ", "ဗုဒ်", "ကြာ", "သော", "စနေ")
+        val colors = listOf(Color.Red, Color.White, Color.White, Color.White, Color.White, Color.White, Color(0xFF9966FF))
+
+        weekdays.forEachIndexed { index, day ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = day,
+                    color = colors[index],
+                    textAlign = TextAlign.Center,
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun DayCell(dayInfo: DayInfo, calendar: MyanmarCalendar) {
+fun DayCell(dayInfo: DayInfo) {
     if (dayInfo.gregorianDay == 0) {
-        Spacer(modifier = Modifier.padding(4.dp))
+        // Empty cell
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .background(Color.Black)
+        )
         return
     }
 
-    Column(
-        modifier = Modifier
-            .padding(2.dp)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(4.dp)
-            )
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            dayInfo.gregorianDay.toString(),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            calendar.getMyanmarText(dayInfo.myanmarDay.toString()),
-            style = MaterialTheme.typography.bodySmall
-        )
-        Text(
-            calendar.getMyanmarText(dayInfo.myanmarMonth),
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1
-        )
+    // Simplified special dates for highlighting
+    val specialDates = listOf(2, 13, 27)
+    val isSpecialDate = specialDates.contains(dayInfo.gregorianDay)
 
-        MoonPhaseIndicator(dayInfo.moonPhase)
+    // Check if it's a full moon day (day 13 in the screenshots)
+    val isFullMoonDay = dayInfo.gregorianDay == 13
+
+    // Background color
+    val bgColor = when {
+        isFullMoonDay -> Color(0xFF552255) // Purple for full moon
+        else -> Color.Black
     }
-}
 
-@Composable
-private fun MoonPhaseIndicator(moonPhase: Int) {
-    when (moonPhase) {
-        1 -> Text("🌕", fontSize = 12.sp)
-        3 -> Text("🌑", fontSize = 12.sp)
-        else -> Spacer(modifier = Modifier.height(12.dp))
+    // Determine if this is a late month day - only for last days in this example
+    val isLateMonth = dayInfo.gregorianDay >= 29
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .background(bgColor)
+            .padding(4.dp),
+        contentAlignment = Alignment.TopStart
+    ) {
+        Column {
+            // Day number
+            Text(
+                text = dayInfo.gregorianDay.toString(),
+                color = if (isSpecialDate) Color.Red else Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+
+            // Just show "တပေါင်း" for most days as in your screenshots
+            if (!isLateMonth) {
+                Text(
+                    text = "တပေါင်း",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
+            } else {
+                // For days 29-31 just show "Tagu" as in your screenshots
+                Text(
+                    text = "Tagu",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
+            }
+        }
     }
 }

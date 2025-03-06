@@ -1,5 +1,6 @@
 package com.ryan.myanmarcalendar.data.model
 
+import com.ryan.myanmarcalendar.api.config.CalendarConfig
 import com.ryan.myanmarcalendar.core.kernel.WesternDateKernel
 import java.io.Serializable
 
@@ -12,7 +13,7 @@ data class WesternDate(
     val second: Int = 0
 ) : Serializable {
 
-    fun toJulian(calendarType: CalendarType = CalendarType.ENGLISH, sg: Double = 2361222.0): Double {
+    fun toJulian(calendarType: CalendarType = CalendarConfig.getInstance().calendarType, sg: Double = 2361222.0): Double {
         return WesternDateKernel.westernToJulian(
             year = year,
             month = month,
@@ -25,14 +26,34 @@ data class WesternDate(
         )
     }
 
+    fun toMyanmarDate(): MyanmarDate {
+        return MyanmarDate.of(toJulian())
+    }
+
+    override fun toString(): String {
+        return "WesternDate [year=$year, month=$month, day=$day, hour=$hour, minute=$minute, second=$second]"
+    }
+
     companion object {
+        fun of(myanmarDate: MyanmarDate): WesternDate {
+            return of(myanmarDate.toJulian())
+        }
+
+        fun of(julianDate: Double, calendarType: CalendarType = CalendarConfig.getInstance().calendarType): WesternDate {
+            return of(julianDate, calendarType, 2361222.0)
+        }
+
+        fun of(julianDate: Double, calendarType: CalendarType, sg: Double): WesternDate {
+            return WesternDateKernel.julianToWestern(julianDate, calendarType.number, sg)
+        }
+
+        // For compatibility with existing code
         fun fromJulian(
             julianDate: Double,
-            calendarType: CalendarType = CalendarType.ENGLISH,
+            calendarType: CalendarType = CalendarConfig.getInstance().calendarType,
             sg: Double = 2361222.0
-        ): WesternDate = WesternDateKernel.julianToWestern(julianDate, calendarType.number, sg)
+        ): WesternDate = of(julianDate, calendarType, sg)
 
-        fun fromMyanmarDate(myanmarDate: MyanmarDate): WesternDate =
-            fromJulian(myanmarDate.toJulian())
+        fun fromMyanmarDate(myanmarDate: MyanmarDate): WesternDate = of(myanmarDate)
     }
 }

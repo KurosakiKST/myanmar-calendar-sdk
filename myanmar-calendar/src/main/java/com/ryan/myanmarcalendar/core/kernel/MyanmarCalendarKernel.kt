@@ -1,6 +1,9 @@
 package com.ryan.myanmarcalendar.core.kernel
 
 import com.ryan.myanmarcalendar.core.constants.CalendarConstants
+import com.ryan.myanmarcalendar.core.translator.LanguageTranslator
+import com.ryan.myanmarcalendar.data.model.Language
+import com.ryan.myanmarcalendar.data.model.MyanmarDate
 import com.ryan.myanmarcalendar.data.model.MyanmarMonths
 import kotlin.math.floor
 import kotlin.math.roundToLong
@@ -80,5 +83,125 @@ internal object MyanmarCalendarKernel {
         }
 
         return MyanmarMonths(monthList, monthNameList, monthList[currentIndex])
+    }
+
+    fun calculateYearType(myear: Int): Int {
+        return MyanmarDateKernel.checkMyanmarYear(myear)["myt"] ?: 0
+    }
+
+    fun calculateDayOfMonth(myear: Int, mmonth: Int, moonPhase: Int, fortnightDay: Int): Int {
+        val yo = MyanmarDateKernel.checkMyanmarYear(myear)
+        val yearType = yo["myt"] ?: 0
+
+        // Adjust month length
+        val monthLength = 30 - mmonth % 2 + (if (mmonth == 3) yearType / 2 else 0)
+
+        val m1 = moonPhase % 2
+        val m2 = moonPhase / 2
+
+        return m1 * (15 + m2 * (monthLength - 15)) + (1 - m1) * (fortnightDay + 15 * m2)
+    }
+
+    fun getCalendarHeader(
+        startDate: MyanmarDate,
+        endDate: MyanmarDate,
+        language: Language
+    ): String {
+        val str = StringBuilder()
+
+        str.append(getHeaderForBuddhistEra(startDate, endDate, language))
+
+        if (endDate.year >= 2) {
+            str.append(language.punctuationMark)
+                .append(getHeaderForMyanmarYear(startDate, endDate, language))
+                .append(language.punctuationMark)
+
+            str.append(getHeaderForMyanmarMonth(startDate, endDate, language))
+        }
+
+        return str.toString()
+    }
+
+    fun getHeaderForBuddhistEra(startDate: MyanmarDate, endDate: MyanmarDate, language: Language): String {
+        val sb = StringBuilder()
+
+        sb.append(LanguageTranslator.translate("Sasana Year", language))
+            .append(" ")
+            .append(startDate.getBuddhistEra(language))
+
+        if (startDate.getBuddhistEraValue() != endDate.getBuddhistEraValue()) {
+            sb.append(" - ")
+                .append(endDate.getBuddhistEra(language))
+        }
+
+        sb.append(" ")
+            .append(LanguageTranslator.translate("Ku", language))
+
+        return sb.toString()
+    }
+
+    fun getHeaderForMyanmarYear(startDate: MyanmarDate, endDate: MyanmarDate, language: Language): String {
+        val sb = StringBuilder()
+
+        sb.append(LanguageTranslator.translate("Myanmar Year", language))
+            .append(" ")
+
+        if (startDate.year >= 2) {
+            sb.append(startDate.getYear(language))
+            if (startDate.year != endDate.year) {
+                sb.append(" - ")
+            }
+        }
+
+        if (startDate.year != endDate.year) {
+            sb.append(endDate.getYear(language))
+        }
+
+        sb.append(" ")
+            .append(LanguageTranslator.translate("Ku", language))
+
+        return sb.toString()
+    }
+
+    fun getHeaderForMyanmarMonth(startDate: MyanmarDate, endDate: MyanmarDate, language: Language): String {
+        val sb = StringBuilder()
+
+        if (startDate.year >= 2) {
+            sb.append(startDate.getMonthName(language))
+            if (startDate.month != endDate.month) {
+                sb.append(" - ")
+            }
+        }
+
+        if (startDate.month != endDate.month) {
+            sb.append(endDate.getMonthName(language))
+        }
+
+        return sb.toString()
+    }
+
+    fun getCalendarHeader(myear: Int, mmonth: Int, language: Language): String {
+        return getCalendarHeader(myear, mmonth, 1, language)
+    }
+
+    fun getCalendarHeader(myear: Int, mmonth: Int, mday: Int, language: Language): String {
+        val julianDate = MyanmarDateKernel.myanmarDateToJulian(myear, mmonth, mday)
+        val myanmarDate = MyanmarDate.of(julianDate)
+
+        val js = myanmarDate.toJulian()
+        val eml = myanmarDate.lengthOfMonth()
+        val je = js + eml - 1
+
+        val endMyanmarDate = MyanmarDate.of(je)
+
+        return getCalendarHeader(myanmarDate, endMyanmarDate, language)
+    }
+
+    fun getCalendarHeaderForWesternStyle(year: Int, month: Int, language: Language): String {
+        val monthLength = WesternDateKernel.getLengthOfMonth(year, month, 0)
+        val startDate = MyanmarDate.of(year, month, 1)
+        val endDate = MyanmarDate.of(startDate.toJulian() + monthLength - 1)
+
+        return getCalendarHeader(startDate, endDate, language)
     }
 }

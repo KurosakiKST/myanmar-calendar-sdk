@@ -1,6 +1,7 @@
 package com.ryan.myanmarcalendar.api
 
 import com.ryan.myanmarcalendar.api.config.CalendarConfig
+import com.ryan.myanmarcalendar.core.kernel.MyanmarCalendarKernel
 import com.ryan.myanmarcalendar.core.kernel.MyanmarDateKernel
 import com.ryan.myanmarcalendar.core.kernel.WesternDateKernel
 import com.ryan.myanmarcalendar.core.translator.LanguageTranslator
@@ -9,15 +10,22 @@ import com.ryan.myanmarcalendar.domain.model.CalendarResult
 import com.ryan.myanmarcalendar.domain.model.DayInfo
 import com.ryan.myanmarcalendar.domain.model.GregorianMonth
 import com.ryan.myanmarcalendar.domain.model.MyanmarMonth
+import java.time.LocalDate
 import java.time.ZoneId
-import java.util.Date
+import java.util.*
 
 class MyanmarCalendar private constructor(private val config: CalendarConfig) {
 
+    /**
+     * Get the current month calendar based on system time
+     */
     fun getCurrentMonthCalendar(): CalendarResult {
         return getMonthCalendar(System.currentTimeMillis())
     }
 
+    /**
+     * Get the month calendar for a specific timestamp
+     */
     fun getMonthCalendar(timeMillis: Long): CalendarResult {
         val date = Date(timeMillis)
         val calendar = java.util.Calendar.getInstance()
@@ -30,8 +38,11 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
         )
     }
 
-    private fun getMonthCalendar(year: Int, month: Int, day: Int): CalendarResult {
-        val julianDay = WesternDateKernel.westernToJulian(year, month, day)
+    /**
+     * Get month calendar for a specific year, month and day
+     */
+    fun getMonthCalendar(year: Int, month: Int, day: Int): CalendarResult {
+        val julianDay = WesternDateKernel.westernToJulian(year, month, day, config.calendarType.number)
         val myanmarDate = MyanmarDateKernel.julianToMyanmarDate(julianDay)
 
         return CalendarResult(
@@ -41,24 +52,75 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
         )
     }
 
+    /**
+     * Convert a Date object to MyanmarDate
+     */
     fun convertToMyanmarDate(date: Date): MyanmarDate {
         val localDateTime = date.toInstant()
             .atZone(ZoneId.systemDefault())
             .toLocalDateTime()
-        return MyanmarDate.fromLocalDateTime(localDateTime)
+        return MyanmarDate.of(localDateTime)
+    }
+
+    /**
+     * Convert a year/month/day to MyanmarDate
+     */
+    fun convertToMyanmarDate(year: Int, month: Int, day: Int): MyanmarDate {
+        val julianDay = WesternDateKernel.westernToJulian(year, month, day, config.calendarType.number)
+        return MyanmarDateKernel.julianToMyanmarDate(julianDay)
+    }
+
+    /**
+     * Get astrological information for a specific date
+     */
+    fun getAstrological(date: Date): Astro {
+        val myanmarDate = convertToMyanmarDate(date)
+        return Astro.of(myanmarDate)
+    }
+
+    /**
+     * Get astrological information for a specific Myanmar date
+     */
+    fun getAstrological(myanmarDate: MyanmarDate): Astro {
+        return Astro.of(myanmarDate)
+    }
+
+    /**
+     * Get astrological information for a specific year, month, day
+     */
+    fun getAstrological(year: Int, month: Int, day: Int): Astro {
+        val myanmarDate = convertToMyanmarDate(year, month, day)
+        return Astro.of(myanmarDate)
+    }
+
+    /**
+     * Get calendar header for a Myanmar year and month
+     */
+    fun getCalendarHeader(myear: Int, mmonth: Int): String {
+        return MyanmarCalendarKernel.getCalendarHeader(myear, mmonth, config.language)
+    }
+
+    /**
+     * Get calendar header for a Western year and month
+     */
+    fun getWesternCalendarHeader(year: Int, month: Int): String {
+        return MyanmarCalendarKernel.getCalendarHeaderForWesternStyle(year, month, config.language)
     }
 
     companion object {
         @Volatile private var instance: MyanmarCalendar? = null
 
         @JvmStatic
-        fun getInstance(config: CalendarConfig = CalendarConfig.default()): MyanmarCalendar {
+        fun getInstance(config: CalendarConfig = CalendarConfig.getInstance()): MyanmarCalendar {
             return instance ?: synchronized(this) {
                 instance ?: MyanmarCalendar(config).also { instance = it }
             }
         }
     }
 
+    /**
+     * Create a GregorianMonth object from a WesternDate
+     */
     private fun getGregorianMonth(westernDate: WesternDate): GregorianMonth {
         val monthLength = WesternDateKernel.getLengthOfMonth(
             westernDate.year,
@@ -70,13 +132,13 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
             westernDate.year,
             westernDate.month,
             1
-        ).toJulian().toLong()
+        ).toJulian(config.calendarType).toLong()
 
         val endDate = WesternDate(
             westernDate.year,
             westernDate.month,
             monthLength
-        ).toJulian().toLong()
+        ).toJulian(config.calendarType).toLong()
 
         return GregorianMonth(
             day = westernDate.day,
@@ -88,6 +150,9 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
         )
     }
 
+    /**
+     * Create a MyanmarMonth object from a MyanmarDate
+     */
     private fun getMyanmarMonth(myanmarDate: MyanmarDate): MyanmarMonth {
         val months = MyanmarMonths.of(myanmarDate.year, myanmarDate.month)
 
@@ -95,13 +160,16 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
             year = myanmarDate.year,
             month = myanmarDate.month,
             monthName = months.getCalculationMonthName(),
-            daysInMonth = myanmarDate.monthLength,
+            daysInMonth = myanmarDate.lengthOfMonth(),
             isLeapMonth = myanmarDate.monthType == MonthType.INTERCALARY
         )
     }
 
+    /**
+     * Get all days in a month with their Myanmar date information
+     */
     private fun getDaysInMonth(year: Int, month: Int): List<DayInfo> {
-        val firstDayJulian = WesternDateKernel.westernToJulian(year, month, 1)
+        val firstDayJulian = WesternDateKernel.westernToJulian(year, month, 1, config.calendarType.number)
         val firstDayOfWeek = (firstDayJulian.toLong() + 1) % 7
 
         val paddingDays = (0 until firstDayOfWeek.toInt()).map {
@@ -115,13 +183,14 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
         }
 
         val monthDays = (1..WesternDateKernel.getLengthOfMonth(year, month, config.calendarType.number)).map { day ->
-            val julianDay = WesternDateKernel.westernToJulian(year, month, day)
+            val julianDay = WesternDateKernel.westernToJulian(year, month, day, config.calendarType.number)
             val myanmarDate = MyanmarDateKernel.julianToMyanmarDate(julianDay)
+            val astro = Astro.of(myanmarDate)
 
             DayInfo(
                 gregorianDay = day,
                 myanmarDay = myanmarDate.day,
-                myanmarMonth = MyanmarMonths.of(myanmarDate.year, myanmarDate.month).getCalculationMonthName(),
+                myanmarMonth = myanmarDate.getMonthName(config.language),
                 timestamp = julianDay.toLong(),
                 moonPhase = myanmarDate.moonPhase
             )
@@ -130,10 +199,16 @@ class MyanmarCalendar private constructor(private val config: CalendarConfig) {
         return paddingDays + monthDays
     }
 
+    /**
+     * Translate text to Myanmar
+     */
     fun getMyanmarText(text: String): String {
         return LanguageTranslator.translate(text, Language.MYANMAR)
     }
 
+    /**
+     * Translate text to English
+     */
     fun getEnglishText(text: String): String {
         return LanguageTranslator.translate(text, Language.ENGLISH)
     }

@@ -26,30 +26,26 @@ data class Astro(
     val moonPhase: Int = 0 // 0=waxing, 1=full moon, 2=waning, 3=dark moon
 ) : Serializable {
 
-    fun isYatyaza() = yatyaza > 0
-    fun isPyathada() = pyathada > 0
-    fun isSabbath() = sabbath == 1
-    fun isSabbathEve() = sabbath == 2
-    fun isThamanyo() = thamanyo > 0
-    fun isAmyeittasote() = amyeittasote > 0
-    fun isWarameittugyi() = warameittugyi > 0
-    fun isWarameittunge() = warameittunge > 0
-    fun isYatpote() = yatpote > 0
-    fun isThamaphyu() = thamaphyu > 0
-    fun isNagapor() = nagapor > 0
-    fun isYatyotema() = yatyotema > 0
-    fun isMahayatkyan() = mahayatkyan > 0
-    fun isShanyat() = shanyat > 0
-    fun isFullMoon() = moonPhase == 1
-    fun isDarkMoon() = moonPhase == 3
+    fun isYatyaza(): Boolean = yatyaza > 0
+    fun isPyathada(): Boolean = pyathada > 0
+    fun isSabbath(): Boolean = sabbath == 1
+    fun isSabbathEve(): Boolean = sabbath == 2
+    fun isThamanyo(): Boolean = thamanyo > 0
+    fun isAmyeittasote(): Boolean = amyeittasote > 0
+    fun isWarameittugyi(): Boolean = warameittugyi > 0
+    fun isWarameittunge(): Boolean = warameittunge > 0
+    fun isYatpote(): Boolean = yatpote > 0
+    fun isThamaphyu(): Boolean = thamaphyu > 0
+    fun isNagapor(): Boolean = nagapor > 0
+    fun isYatyotema(): Boolean = yatyotema > 0
+    fun isMahayatkyan(): Boolean = mahayatkyan > 0
+    fun isShanyat(): Boolean = shanyat > 0
 
-    fun getSabbathText(language: Language = CalendarConfig.getInstance().language): String {
-        return when (sabbath) {
-            1 -> LanguageTranslator.translate("Sabbath", language)
-            2 -> LanguageTranslator.translate("Sabbath Eve", language)
-            else -> ""
-        }
-    }
+    fun getPyathadaValue(): Int = pyathada
+    fun getSabbathValue(): Int = sabbath
+    fun getNagahleValue(): Int = nagahle
+    fun getMahaboteValue(): Int = mahabote
+    fun getNakhatValue(): Int = nakhat
 
     fun getYatyaza(language: Language = CalendarConfig.getInstance().language): String {
         return if (isYatyaza()) LanguageTranslator.translate("Yatyaza", language) else ""
@@ -58,14 +54,82 @@ data class Astro(
     fun getPyathada(language: Language = CalendarConfig.getInstance().language): String {
         return when (pyathada) {
             1 -> LanguageTranslator.translate("Pyathada", language)
-            2 -> "${LanguageTranslator.translate("Afternoon", language)} ${
-                LanguageTranslator.translate(
-                    "Pyathada",
-                    language
-                )
-            }"
+            2 -> {
+                val afternoon = LanguageTranslator.translate("Afternoon", language)
+                val pyathada = LanguageTranslator.translate("Pyathada", language)
+                "$afternoon $pyathada"
+            }
             else -> ""
         }
+    }
+
+    fun getAstrologicalDay(language: Language = CalendarConfig.getInstance().language): String {
+        val sb = StringBuilder()
+        sb.append(getYatyaza(language))
+
+        if (isYatyaza() && isPyathada()) {
+            sb.append(language.punctuationMark)
+        }
+
+        sb.append(getPyathada(language))
+
+        return sb.toString()
+    }
+
+    fun getSabbath(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isSabbath()) LanguageTranslator.translate("Sabbath", language) else ""
+    }
+
+    fun getSabbathEve(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isSabbathEve()) LanguageTranslator.translate("Sabbath Eve", language) else ""
+    }
+
+    fun getSabbathOrEve(language: Language = CalendarConfig.getInstance().language): String {
+        return when (sabbath) {
+            1 -> LanguageTranslator.translate("Sabbath", language)
+            2 -> LanguageTranslator.translate("Sabbath Eve", language)
+            else -> ""
+        }
+    }
+
+    fun getThamanyo(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isThamanyo()) LanguageTranslator.translate("Thamanyo", language) else ""
+    }
+
+    fun getAmyeittasote(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isAmyeittasote()) LanguageTranslator.translate("Amyeittasote", language) else ""
+    }
+
+    fun getWarameittugyi(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isWarameittugyi()) LanguageTranslator.translate("Warameittugyi", language) else ""
+    }
+
+    fun getWarameittunge(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isWarameittunge()) LanguageTranslator.translate("Warameittunge", language) else ""
+    }
+
+    fun getYatpote(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isYatpote()) LanguageTranslator.translate("Yatpote", language) else ""
+    }
+
+    fun getThamaphyu(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isThamaphyu()) LanguageTranslator.translate("Thamaphyu", language) else ""
+    }
+
+    fun getNagapor(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isNagapor()) LanguageTranslator.translate("Nagapor", language) else ""
+    }
+
+    fun getYatyotema(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isYatyotema()) LanguageTranslator.translate("Yatyotema", language) else ""
+    }
+
+    fun getMahayatkyan(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isMahayatkyan()) LanguageTranslator.translate("Mahayatkyan", language) else ""
+    }
+
+    fun getShanyat(language: Language = CalendarConfig.getInstance().language): String {
+        return if (isShanyat()) LanguageTranslator.translate("Shanyat", language) else ""
     }
 
     fun getNagahle(language: Language = CalendarConfig.getInstance().language): String {
@@ -91,9 +155,108 @@ data class Astro(
         return LanguageTranslator.translate(yearNames[yearName], language)
     }
 
-    fun getMoonPhase(language: Language = CalendarConfig.getInstance().language): String {
-        val phases = arrayOf("Waxing", "Full Moon", "Waning", "Dark Moon")
-        return LanguageTranslator.translate(phases[moonPhase], language)
+    override fun toString(): String {
+        return toString(CalendarConfig.getInstance().language)
+    }
+
+    fun toString(language: Language): String {
+        val sb = StringBuilder()
+        sb.append(getAstrologicalDay(language))
+
+        if (isSabbath() || isSabbathEve()) {
+            sb.append(language.punctuationMark)
+            sb.append(getSabbathOrEve(language))
+        }
+
+        if (isThamanyo()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getThamanyo(language))
+        }
+
+        if (isThamaphyu()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getThamaphyu(language))
+        }
+
+        if (isAmyeittasote()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getAmyeittasote(language))
+        }
+
+        if (isWarameittugyi()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getWarameittugyi(language))
+        }
+
+        if (isWarameittunge()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getWarameittunge(language))
+        }
+
+        if (isYatpote()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getYatpote(language))
+        }
+
+        if (isNagapor()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getNagapor(language))
+        }
+
+        if (isYatyotema()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getYatyotema(language))
+        }
+
+        if (isMahayatkyan()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getMahayatkyan(language))
+        }
+
+        if (isShanyat()) {
+            sb.append(" ")
+            sb.append(language.punctuationMark)
+            sb.append(getShanyat(language))
+        }
+
+        sb.append(" ")
+        sb.append(language.punctuationMark)
+        sb.append(LanguageTranslator.translate("Naga", language))
+        sb.append(" ")
+        sb.append(LanguageTranslator.translate("Head", language))
+        sb.append(" ")
+        sb.append(getNagahle(language))
+        sb.append(" ")
+        sb.append(LanguageTranslator.translate("Facing", language))
+
+        sb.append(" ")
+        sb.append(language.punctuationMark)
+
+        sb.append(getMahabote(language))
+        sb.append(LanguageTranslator.translate("Born", language))
+
+        sb.append(" ")
+        sb.append(language.punctuationMark)
+
+        sb.append(getNakhat(language))
+        sb.append(" ")
+        sb.append(LanguageTranslator.translate("Nakhat", language))
+
+        sb.append(" ")
+        sb.append(language.punctuationMark)
+
+        sb.append(getYearName(language))
+
+        return sb.toString()
     }
 
     companion object {

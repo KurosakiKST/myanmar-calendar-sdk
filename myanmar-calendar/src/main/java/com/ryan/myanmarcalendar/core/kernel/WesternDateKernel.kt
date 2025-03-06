@@ -7,16 +7,15 @@ import kotlin.math.floor
 internal object WesternDateKernel {
     fun julianToWestern(julianDate: Double, calType: Int = 0, sg: Double = 2361222.0): WesternDate {
         val cleanCalType = calType.coerceAtLeast(0)
+
         var j: Double
         var jf: Double
         var y: Double
         var m: Double
         var d: Double
-        val h: Double
-        val n: Double
-        val s: Double
 
         if (calType == 2 || (calType == 0 && julianDate < sg)) {
+            // Julian calendar or English calendar before Gregorian switch
             j = floor(julianDate + 0.5)
             jf = julianDate + 0.5 - j
 
@@ -29,6 +28,7 @@ internal object WesternDateKernel {
             d = b - f - floor(30.6001 * e)
             y = if (m < 3) c - 4715 else c - 4716
         } else {
+            // Gregorian calendar
             j = floor(julianDate + 0.5)
             jf = julianDate + 0.5 - j
             j -= 1721119
@@ -52,11 +52,12 @@ internal object WesternDateKernel {
             }
         }
 
+        // Calculate time from fraction of day
         jf *= 24
-        h = floor(jf)
+        val h = floor(jf)
         jf = (jf - h) * 60
-        n = floor(jf)
-        s = ((jf - n) * 60).toInt().toDouble()
+        val n = floor(jf)
+        val s = ((jf - n) * 60).toInt().toDouble()
 
         return WesternDate(
             year = y.toInt(),
@@ -131,6 +132,16 @@ internal object WesternDateKernel {
         }
 
         return mLen
+    }
+
+    fun getJulianDayNumberOfStartOfMonth(year: Int, month: Int, calendarType: Int = 0): Int {
+        return westernToJulian(year, month, 1, calendarType).toInt()
+    }
+
+    fun getJulianDayNumberOfEndOfMonth(year: Int, month: Int, calendarType: Int = 0): Int {
+        val startJD = getJulianDayNumberOfStartOfMonth(year, month, calendarType)
+        val monthLength = getLengthOfMonth(year, month, calendarType)
+        return startJD + monthLength - 1
     }
 
     private fun timeToDayFraction(hour: Int, minute: Int, second: Int): Double {
